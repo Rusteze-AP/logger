@@ -6,10 +6,10 @@ pub struct Logger {
 
 
 impl Logger {
-    pub fn new(displayable: bool) -> Logger {
+    pub fn new(displayable: bool, module: String) -> Logger {
         Logger {
-            displayable: displayable,
-            module: module_path!().to_string(),
+            displayable,
+            module,
         }
     }
     
