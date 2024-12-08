@@ -1,0 +1,59 @@
+/* Stile generale della pagina */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: black;
+    color: #00ff00; /* Testo verde "Matrix" */
+    font-family: "Courier New", Courier, monospace; /* Font simile a terminale */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Titolo centrato */
+h1 {
+    margin: 0;
+    padding: 20px 0;
+    text-align: center;
+    font-size: 2.5em;
+    color: #00ff00;
+    text-shadow: 0 0 5px #00ff00;
+}
+
+/* Contenitore per il terminale */
+#logs {
+    margin: 20px 0;
+    padding: 10px;
+    width: 90%;
+    height: 70%; /* Dimensione del terminale */
+    background-color: #0a0a0a; /* Colore di sfondo del terminale */
+    border: 2px solid #00ff00; /* Bordo verde brillante */
+    box-shadow: 0 0 10px #00ff00; /* Effetto luminoso */
+    overflow-y: auto; /* Scorrimento verticale */
+    overflow-x: hidden; /* Niente scorrimento orizzontale */
+    font-size: 1.2em;
+    line-height: 1.5;
+}
+
+/* Stile dei singoli log */
+#logs li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+    color: #00ff00;
+}
+
+/* Effetto lampeggiante opzionale per il titolo */
+@keyframes blink {
+    0% { text-shadow: 0 0 10px #00ff00; }
+    50% { text-shadow: 0 0 0 #00ff00; }
+    100% { text-shadow: 0 0 10px #00ff00; }
+}
+
+h1 {
+    animation: blink 1s infinite;
+}

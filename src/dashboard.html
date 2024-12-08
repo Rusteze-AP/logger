@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Logs</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Collega il file CSS -->
+</head>
+<body>
+    <h1>Dashboard Logs</h1>
+    <ul id="logs"></ul>
+    <script>
+        const logsList = document.getElementById('logs');
+
+        // Connessione WebSocket
+        const ws = new WebSocket('ws://127.0.0.1:3030/ws');
+
+        ws.onmessage = (event) => {
+            const logItem = document.createElement('li');
+            logItem.textContent = event.data;
+            logsList.appendChild(logItem);
+
+            // Scorrimento automatico verso il basso
+            logsList.scrollTop = logsList.scrollHeight;
+        };
+    </script>
+</body>
+</html>
