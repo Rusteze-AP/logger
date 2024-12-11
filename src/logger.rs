@@ -8,45 +8,49 @@ use warp::Filter;
 
 #[derive(Debug, Clone, Copy)]
 pub enum LogLevel {
-    None = 0b0000, // 0
+    None = 0b0000,  // 0
     Debug = 0b0001, // 1
-    Warn  = 0b0010, // 2
+    Warn = 0b0010,  // 2
     Error = 0b0100, // 4
-    Info  = 0b1000, // 8
-    All = 0b1111, // 15
+    Info = 0b1000,  // 8
+    All = 0b1111,   // 15
 }
 
 pub struct Logger {
     displayable: u8,
+    web_socket: bool,
     module: String,
     log_sender: broadcast::Sender<String>,
 }
 
 impl Logger {
-    pub fn new(displayable: u8, module: String) -> Logger {
+    pub fn new(displayable: u8, web_socket: bool, module: String) -> Logger {
         let (log_sender, _) = broadcast::channel(100);
         let thread_log_sender = log_sender.clone();
 
-        thread::spawn(move || {
-            let rt = Runtime::new().unwrap();
+        if web_socket {
+            thread::spawn(move || {
+                let rt = Runtime::new().unwrap();
 
-            rt.block_on(async move {
-                let ws_route = warp::path("ws")
-                    .and(warp::ws())
-                    .and(warp::any().map(move || thread_log_sender.clone()))
-                    .map(|ws: warp::ws::Ws, sender| {
-                        ws.on_upgrade(move |socket| handle_connection(socket, sender))
-                    });
+                rt.block_on(async move {
+                    let ws_route = warp::path("ws")
+                        .and(warp::ws())
+                        .and(warp::any().map(move || thread_log_sender.clone()))
+                        .map(|ws: warp::ws::Ws, sender| {
+                            ws.on_upgrade(move |socket| handle_connection(socket, sender))
+                        });
 
-                println!("WebSocket server running on ws://127.0.0.1:3030");
+                    println!("WebSocket server running on ws://127.0.0.1:3030");
 
-                // Run the warp server.
-                warp::serve(ws_route).run(([127, 0, 0, 1], 3030)).await;
+                    // Run the warp server.
+                    warp::serve(ws_route).run(([127, 0, 0, 1], 3030)).await;
+                });
             });
-        });
+        }
 
         Logger {
             displayable,
+            web_socket,
             module,
             log_sender,
         }
@@ -54,6 +58,24 @@ impl Logger {
 
     pub fn set_displayable(&mut self, displayable: u8) {
         self.displayable = displayable;
+    }
+    
+    pub fn add_displayable_flag(&mut self, flag: LogLevel){
+        self.displayable |= flag as u8;
+    }
+    
+    pub fn remove_displayable_flag(&mut self, flag: LogLevel){
+        self.displayable &= !(flag as u8);
+    }
+    
+    pub fn set_web_socket(&mut self, web_socket: bool) {
+        self.web_socket = web_socket;
+    }
+    
+    fn send_to_socket(&self, formatted_message: String) {
+        if self.web_socket {
+            let _ = self.log_sender.send(formatted_message);
+        }
     }
 
     pub fn log_debug(&self, message: &str) {
@@ -63,8 +85,8 @@ impl Logger {
         if self.displayable & LogLevel::Debug as u8 != 0 {
             println!("\x1b[32m{}\x1b[0m", formatted_message);
         }
-        
-        self.log_sender.send(formatted_message);
+
+        self.send_to_socket(formatted_message);
     }
 
     pub fn log_info(&self, message: &str) {
@@ -74,8 +96,8 @@ impl Logger {
         if self.displayable & LogLevel::Info as u8 != 0 {
             println!("\x1b[34m{}\x1b[0m", formatted_message);
         }
-        
-        self.log_sender.send(formatted_message);
+
+        self.send_to_socket(formatted_message);
     }
 
     pub fn log_warn(&self, message: &str) {
@@ -85,8 +107,8 @@ impl Logger {
         if self.displayable & LogLevel::Warn as u8 != 0 {
             println!("\x1b[33m{}\x1b[0m", formatted_message);
         }
-        
-        self.log_sender.send(formatted_message);
+
+        self.send_to_socket(formatted_message);
     }
 
     pub fn log_error(&self, message: &str) {
@@ -96,8 +118,8 @@ impl Logger {
         if self.displayable & LogLevel::Error as u8 != 0 {
             println!("\x1b[31m{}\x1b[0m", formatted_message);
         }
-        
-        self.log_sender.send(formatted_message);
+
+        self.send_to_socket(formatted_message);
     }
 }
 
