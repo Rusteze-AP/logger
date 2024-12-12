@@ -26,31 +26,10 @@ pub struct Logger {
 impl Logger {
     pub fn new(displayable: u8, web_socket: bool, module: String) -> Logger {
         let (log_sender, _) = broadcast::channel(100);
-        let thread_log_sender = log_sender.clone();
-
-        if web_socket {
-            thread::spawn(move || {
-                let rt = Runtime::new().unwrap();
-
-                rt.block_on(async move {
-                    let ws_route = warp::path("ws")
-                        .and(warp::ws())
-                        .and(warp::any().map(move || thread_log_sender.clone()))
-                        .map(|ws: warp::ws::Ws, sender| {
-                            ws.on_upgrade(move |socket| handle_connection(socket, sender))
-                        });
-
-                    println!("WebSocket server running on ws://127.0.0.1:3030");
-
-                    // Run the warp server.
-                    warp::serve(ws_route).run(([127, 0, 0, 1], 3030)).await;
-                });
-            });
-        }
 
         Logger {
             displayable,
-            web_socket,
+            web_socket: false,
             module,
             log_sender,
         }
@@ -59,19 +38,36 @@ impl Logger {
     pub fn set_displayable(&mut self, displayable: u8) {
         self.displayable = displayable;
     }
-    
-    pub fn add_displayable_flag(&mut self, flag: LogLevel){
+
+    pub fn add_displayable_flag(&mut self, flag: LogLevel) {
         self.displayable |= flag as u8;
     }
-    
-    pub fn remove_displayable_flag(&mut self, flag: LogLevel){
+
+    pub fn remove_displayable_flag(&mut self, flag: LogLevel) {
         self.displayable &= !(flag as u8);
     }
-    
-    pub fn set_web_socket(&mut self, web_socket: bool) {
-        self.web_socket = web_socket;
+
+    pub fn init_web_socket(&mut self) {
+        let thread_log_sender = self.log_sender.clone();
+        self.web_socket = true;
+        thread::spawn(move || {
+            let rt = Runtime::new().unwrap();
+            rt.block_on(async move {
+                let ws_route = warp::path("ws")
+                    .and(warp::ws())
+                    .and(warp::any().map(move || thread_log_sender.clone()))
+                    .map(|ws: warp::ws::Ws, sender| {
+                        ws.on_upgrade(move |socket| handle_connection(socket, sender))
+                    });
+
+                println!("WebSocket server running on ws://127.0.0.1:3030");
+
+                // Run the warp server.
+                warp::serve(ws_route).run(([127, 0, 0, 1], 3030)).await;
+            });
+        });
     }
-    
+
     fn send_to_socket(&self, formatted_message: String) {
         if self.web_socket {
             let _ = self.log_sender.send(formatted_message);
