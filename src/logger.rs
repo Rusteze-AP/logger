@@ -60,7 +60,7 @@ impl Logger {
                         ws.on_upgrade(move |socket| handle_connection(socket, sender))
                     });
 
-                println!("WebSocket server running on ws://127.0.0.1:3030");
+                println!("WebSocket server running on ws://127.0.0.1:3030/ws");
 
                 // Run the warp server.
                 warp::serve(ws_route).run(([127, 0, 0, 1], 3030)).await;
